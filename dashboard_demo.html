@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>🍽️ Restaurant Entry Management</title>
+<style>
+  :root {
+    --primary: #b5451b;
+    --primary-dark: #8a3214;
+    --accent: #f5a623;
+    --bg: #fdf6ee;
+    --card: #ffffff;
+    --text: #2c1a0e;
+    --muted: #8c6e57;
+    --border: #e8d5c0;
+    --success: #2d7a4f;
+    --danger: #c0392b;
+    --in: #1a6b3c;
+    --out: #7f3b08;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  header {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    color: white;
+    padding: 20px 40px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  }
+  header h1 { font-size: 1.8rem; font-weight: 700; }
+  header p { font-size: 0.9rem; opacity: 0.85; }
+
+  .container { max-width: 1200px; margin: 0 auto; padding: 32px 20px; }
+
+  /* ── Tabs ── */
+  .tabs {
+    display: flex; gap: 8px; margin-bottom: 28px;
+    border-bottom: 2px solid var(--border); padding-bottom: 0;
+  }
+  .tab {
+    padding: 10px 22px; border: none; background: transparent;
+    font-size: 0.95rem; font-weight: 600; color: var(--muted);
+    cursor: pointer; border-bottom: 3px solid transparent;
+    margin-bottom: -2px; transition: all 0.2s;
+  }
+  .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+  .tab:hover:not(.active) { color: var(--text); }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 28px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.06);
+    border: 1px solid var(--border);
+    margin-bottom: 24px;
+  }
+  .card h2 { font-size: 1.2rem; margin-bottom: 20px; color: var(--primary); }
+
+  /* ── Form ── */
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-group.full { grid-column: 1 / -1; }
+  label { font-size: 0.85rem; font-weight: 600; color: var(--muted); }
+  input, textarea {
+    padding: 10px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-size: 0.95rem;
+    background: #fdf9f5;
+    transition: border 0.2s;
+    outline: none;
+  }
+  input:focus, textarea:focus { border-color: var(--primary); background: white; }
+  textarea { resize: vertical; min-height: 80px; }
+
+  /* ── Buttons ── */
+  .btn {
+    padding: 11px 24px; border: none; border-radius: 10px;
+    font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: all 0.2s;
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .btn-primary { background: var(--primary); color: white; }
+  .btn-primary:hover { background: var(--primary-dark); transform: translateY(-1px); }
+  .btn-success { background: var(--success); color: white; }
+  .btn-success:hover { filter: brightness(1.1); }
+  .btn-danger  { background: var(--danger); color: white; }
+  .btn-danger:hover  { filter: brightness(1.1); }
+  .btn-accent  { background: var(--accent); color: var(--text); }
+  .btn-accent:hover  { filter: brightness(1.05); }
+  .btn-sm { padding: 6px 14px; font-size: 0.82rem; }
+
+  .btn-row { display: flex; gap: 12px; margin-top: 20px; flex-wrap: wrap; }
+
+  /* ── Badge ── */
+  .badge {
+    display: inline-block; padding: 3px 10px; border-radius: 20px;
+    font-size: 0.78rem; font-weight: 700; letter-spacing: 0.3px;
+  }
+  .badge-in  { background: #d4edda; color: var(--in); }
+  .badge-out { background: #ffe0b2; color: var(--out); }
+
+  /* ── Table ── */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+  th {
+    background: var(--primary); color: white; padding: 12px 14px;
+    text-align: left; font-weight: 600; font-size: 0.82rem; letter-spacing: 0.4px;
+  }
+  th:first-child { border-radius: 10px 0 0 0; }
+  th:last-child  { border-radius: 0 10px 0 0; }
+  td { padding: 12px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #fdf0e5; }
+
+  /* ── Stats bar ── */
+  .stats { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+  .stat-box {
+    flex: 1; min-width: 140px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px; padding: 18px 20px;
+    text-align: center;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  }
+  .stat-box .num { font-size: 2rem; font-weight: 800; color: var(--primary); }
+  .stat-box .lbl { font-size: 0.8rem; color: var(--muted); margin-top: 4px; }
+
+  /* ── Checkout area ── */
+  .checkout-row { display: flex; gap: 12px; align-items: flex-end; }
+  .checkout-row .form-group { flex: 1; }
+
+  /* ── Alert ── */
+  .alert {
+    padding: 12px 18px; border-radius: 10px;
+    font-size: 0.9rem; font-weight: 500;
+    margin-bottom: 16px; display: none;
+  }
+  .alert-success { background: #d4edda; color: #155724; border-left: 4px solid var(--success); }
+  .alert-error   { background: #f8d7da; color: #721c24; border-left: 4px solid var(--danger); }
+
+  .empty { text-align: center; padding: 40px; color: var(--muted); font-size: 0.95rem; }
+
+  /* ── Search bar ── */
+  .search-bar { display: flex; gap: 10px; margin-bottom: 20px; }
+  .search-bar input { flex: 1; }
+
+  /* ── Delete Modal ── */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.45); z-index: 1000;
+    align-items: center; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: white; border-radius: 18px; padding: 32px 28px;
+    max-width: 420px; width: 90%; box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+    text-align: center; animation: popIn 0.2s ease;
+  }
+  @keyframes popIn {
+    from { transform: scale(0.88); opacity: 0; }
+    to   { transform: scale(1);    opacity: 1; }
+  }
+  .modal-icon { font-size: 3rem; margin-bottom: 12px; }
+  .modal h3 { font-size: 1.2rem; margin-bottom: 8px; color: var(--text); }
+  .modal p  { font-size: 0.9rem; color: var(--muted); margin-bottom: 24px; line-height: 1.5; }
+  .modal-btns { display: flex; gap: 12px; justify-content: center; }
+
+  @media (max-width: 600px) {
+    .form-grid { grid-template-columns: 1fr; }
+    header { padding: 16px 20px; }
+    header h1 { font-size: 1.4rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <span style="font-size:2.4rem">🍽️</span>
+  <div>
+    <h1>Restaurant Entry Management</h1>
+    <p>Track guest check-ins, check-outs, and visit history</p>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat-box">
+      <div class="num" id="statTotal">0</div>
+      <div class="lbl">Total Records</div>
+    </div>
+    <div class="stat-box">
+      <div class="num" id="statIn" style="color:var(--success)">0</div>
+      <div class="lbl">Currently Inside</div>
+    </div>
+    <div class="stat-box">
+      <div class="num" id="statOut" style="color:var(--out)">0</div>
+      <div class="lbl">Checked Out</div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('checkin')">✅ Check In</button>
+    <button class="tab" onclick="switchTab('checkout')">🚪 Check Out</button>
+    <button class="tab" onclick="switchTab('records')">📋 All Records</button>
+    <button class="tab" onclick="switchTab('active')">🟢 Active Guests</button>
+  </div>
+
+  <!-- Alert -->
+  <div class="alert" id="alert"></div>
+
+  <!-- ═══ CHECK IN PANEL ═══ -->
+  <div class="panel active" id="panel-checkin">
+    <div class="card">
+      <h2>🙋 New Guest Check-In</h2>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Full Name *</label>
+          <input type="text" id="name" placeholder="e.g. Rajesh Kumar"/>
+        </div>
+        <div class="form-group">
+          <label>Father's Name *</label>
+          <input type="text" id="fathersName" placeholder="e.g. Suresh Kumar"/>
+        </div>
+        <div class="form-group full">
+          <label>Address *</label>
+          <textarea id="address" placeholder="House No, Street, City, State - PIN"></textarea>
+        </div>
+        <div class="form-group">
+          <label>PAN Card Number *</label>
+          <input type="text" id="panCard" placeholder="e.g. ABCDE1234F" maxlength="10" style="text-transform:uppercase"/>
+        </div>
+        <div class="form-group">
+          <label>Entry Time</label>
+          <input type="text" id="entryTimeDisplay" disabled placeholder="Auto-captured on submit"/>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="checkIn()">✅ Check In Guest</button>
+        <button class="btn btn-accent" onclick="clearForm()">🔄 Clear</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ CHECK OUT PANEL ═══ -->
+  <div class="panel" id="panel-checkout">
+    <div class="card">
+      <h2>🚪 Guest Check-Out</h2>
+      <p style="color:var(--muted); margin-bottom:20px; font-size:0.9rem">
+        Enter the guest's PAN card number to check them out.
+      </p>
+      <div class="checkout-row">
+        <div class="form-group">
+          <label>PAN Card Number</label>
+          <input type="text" id="checkoutPan" placeholder="e.g. ABCDE1234F" maxlength="10" style="text-transform:uppercase"/>
+        </div>
+        <button class="btn btn-danger" onclick="checkOut()">🚪 Check Out</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ ALL RECORDS PANEL ═══ -->
+  <div class="panel" id="panel-records">
+    <div class="card">
+      <h2>📋 All Guest Records</h2>
+      <div class="search-bar">
+        <input type="text" id="searchName" placeholder="🔍 Search by name..."/>
+        <button class="btn btn-primary" onclick="searchByName()">Search</button>
+        <button class="btn btn-accent" onclick="loadAllEntries()">Show All</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Name</th>
+              <th>Father's Name</th>
+              <th>Address</th>
+              <th>PAN Card</th>
+              <th>Entry Time</th>
+              <th>Exit Time</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="recordsBody">
+            <tr><td colspan="9" class="empty">Loading records...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ ACTIVE GUESTS PANEL ═══ -->
+  <div class="panel" id="panel-active">
+    <div class="card">
+      <h2>🟢 Currently Inside the Restaurant</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Name</th>
+              <th>Father's Name</th>
+              <th>PAN Card</th>
+              <th>Entry Time</th>
+              <th>Address</th>
+              <th>Quick Checkout</th>
+            </tr>
+          </thead>
+          <tbody id="activeBody">
+            <tr><td colspan="7" class="empty">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══ DELETE CONFIRMATION MODAL ═══ -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal">
+    <div class="modal-icon">🗑️</div>
+    <h3>Delete this record?</h3>
+    <p id="deleteModalMsg">This action cannot be undone.</p>
+    <div class="modal-btns">
+      <button class="btn btn-danger" id="confirmDeleteBtn" onclick="confirmDelete()">Yes, Delete</button>
+      <button class="btn btn-accent" onclick="closeDeleteModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── CONFIG ──────────────────────────────────────────────────────
+  const API = 'http://localhost:8080/api/entries';
+
+  // ── LOCAL DATA STORE (Demo mode - works without backend) ────────
+  let entries = [];
+  let nextId = 1;
+  let useDemo = true; // Set to false when backend is running
+
+  // ── HELPERS ─────────────────────────────────────────────────────
+  function fmt(dt) {
+    if (!dt) return '—';
+    const d = new Date(dt);
+    return d.toLocaleDateString('en-IN') + ' ' + d.toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'});
+  }
+
+  function showAlert(msg, type='success') {
+    const el = document.getElementById('alert');
+    el.textContent = msg;
+    el.className = `alert alert-${type}`;
+    el.style.display = 'block';
+    setTimeout(() => el.style.display = 'none', 3500);
+  }
+
+  function validatePan(pan) {
+    return /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(pan.toUpperCase());
+  }
+
+  function updateStats() {
+    const total = entries.length;
+    const inCount = entries.filter(e => e.status === 'CHECKED_IN').length;
+    const outCount = entries.filter(e => e.status === 'CHECKED_OUT').length;
+    document.getElementById('statTotal').textContent = total;
+    document.getElementById('statIn').textContent = inCount;
+    document.getElementById('statOut').textContent = outCount;
+  }
+
+  // ── TABS ─────────────────────────────────────────────────────────
+  function switchTab(name) {
+    document.querySelectorAll('.tab').forEach((t,i) => {
+      t.classList.toggle('active', ['checkin','checkout','records','active'][i] === name);
+    });
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('panel-'+name).classList.add('active');
+    if (name === 'records') loadAllEntries();
+    if (name === 'active') loadActiveGuests();
+  }
+
+  // ── CHECK IN ─────────────────────────────────────────────────────
+  async function checkIn() {
+    const name       = document.getElementById('name').value.trim();
+    const fathersName = document.getElementById('fathersName').value.trim();
+    const address    = document.getElementById('address').value.trim();
+    const panCard    = document.getElementById('panCard').value.trim().toUpperCase();
+
+    if (!name || !fathersName || !address || !panCard) {
+      showAlert('Please fill all required fields.', 'error'); return;
+    }
+    if (!validatePan(panCard)) {
+      showAlert('Invalid PAN format. Use 5 letters + 4 digits + 1 letter (e.g. ABCDE1234F)', 'error'); return;
+    }
+
+    const entry = { id: nextId++, name, fathersName, address, panCard,
+                    entryTime: new Date().toISOString(), exitTime: null, status: 'CHECKED_IN' };
+
+    if (useDemo) {
+      entries.push(entry);
+      showAlert(`✅ ${name} checked in successfully!`);
+      clearForm();
+      updateStats();
+    } else {
+      try {
+        const res = await fetch(`${API}/checkin`, {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({name, fathersName, address, panCard})
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Check-in failed');
+        entries.push(data);
+        showAlert(`✅ ${name} checked in successfully!`);
+        clearForm(); updateStats();
+      } catch(e) { showAlert(e.message, 'error'); }
+    }
+  }
+
+  // ── CHECK OUT ────────────────────────────────────────────────────
+  async function checkOut(panFromTable) {
+    const pan = (panFromTable || document.getElementById('checkoutPan').value.trim()).toUpperCase();
+    if (!pan) { showAlert('Please enter a PAN card number.', 'error'); return; }
+
+    if (useDemo) {
+      const idx = entries.slice().reverse().findIndex(e => e.panCard === pan && e.status === 'CHECKED_IN');
+      const realIdx = entries.length - 1 - idx;
+      if (idx === -1) { showAlert(`No active check-in found for PAN: ${pan}`, 'error'); return; }
+      entries[realIdx].status = 'CHECKED_OUT';
+      entries[realIdx].exitTime = new Date().toISOString();
+      showAlert(`🚪 Guest with PAN ${pan} checked out.`);
+      document.getElementById('checkoutPan').value = '';
+      updateStats();
+    } else {
+      try {
+        const res = await fetch(`${API}/checkout/${pan}`, {method:'PUT'});
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Check-out failed');
+        const idx = entries.findIndex(e => e.id === data.id);
+        if (idx > -1) entries[idx] = data;
+        showAlert(`🚪 Guest checked out successfully.`);
+        document.getElementById('checkoutPan').value = '';
+        updateStats();
+      } catch(e) { showAlert(e.message, 'error'); }
+    }
+    loadActiveGuests();
+  }
+
+  // ── LOAD ALL ENTRIES ─────────────────────────────────────────────
+  function loadAllEntries() {
+    renderTable(entries, 'recordsBody', false);
+    updateStats();
+  }
+
+  // ── SEARCH ───────────────────────────────────────────────────────
+  function searchByName() {
+    const q = document.getElementById('searchName').value.trim().toLowerCase();
+    const filtered = q ? entries.filter(e => e.name.toLowerCase().includes(q)) : entries;
+    renderTable(filtered, 'recordsBody', false);
+  }
+
+  // ── ACTIVE GUESTS ────────────────────────────────────────────────
+  function loadActiveGuests() {
+    const active = entries.filter(e => e.status === 'CHECKED_IN');
+    renderTable(active, 'activeBody', true);
+  }
+
+  // ── RENDER TABLE ─────────────────────────────────────────────────
+  function renderTable(data, tbodyId, isActive) {
+    const body = document.getElementById(tbodyId);
+    if (!data.length) {
+      body.innerHTML = `<tr><td colspan="${isActive?7:10}" class="empty">No records found.</td></tr>`;
+      return;
+    }
+    body.innerHTML = data.map((e, i) => `
+      <tr>
+        <td><strong>${i+1}</strong></td>
+        <td><strong>${e.name}</strong></td>
+        <td>${e.fathersName}</td>
+        ${isActive ? '' : `<td style="max-width:180px;font-size:0.85rem">${e.address}</td>`}
+        <td><code style="background:#f0e8e0;padding:2px 6px;border-radius:6px;font-size:0.85rem">${e.panCard}</code></td>
+        <td>${fmt(e.entryTime)}</td>
+        ${isActive ? '' : `<td>${fmt(e.exitTime)}</td>`}
+        ${isActive ? `<td style="max-width:160px;font-size:0.85rem">${e.address}</td>` : ''}
+        ${isActive ? '' : `<td><span class="badge ${e.status==='CHECKED_IN'?'badge-in':'badge-out'}">${e.status==='CHECKED_IN'?'✅ In':'🚪 Out'}</span></td>`}
+        <td style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+          ${e.status === 'CHECKED_IN'
+            ? `<button class="btn btn-danger btn-sm" onclick="checkOut('${e.panCard}')">🚪 Out</button>`
+            : `<span style="color:var(--muted);font-size:0.82rem">Completed</span>`}
+          <button class="btn btn-sm" style="background:#fdecea;color:var(--danger);border:1.5px solid #f5c6cb"
+            onclick="openDeleteModal(${e.id})" title="Delete record">🗑️ Delete</button>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  // ── DELETE ───────────────────────────────────────────────────────
+  let pendingDeleteId = null;
+
+  function openDeleteModal(id) {
+    const entry = entries.find(e => e.id === id);
+    if (!entry) return;
+    pendingDeleteId = id;
+    document.getElementById('deleteModalMsg').textContent =
+      `You are about to delete the record for "${entry.name}" (PAN: ${entry.panCard}). This cannot be undone.`;
+    document.getElementById('deleteModal').classList.add('open');
+  }
+
+  function closeDeleteModal() {
+    pendingDeleteId = null;
+    document.getElementById('deleteModal').classList.remove('open');
+  }
+
+  async function confirmDelete() {
+    if (pendingDeleteId === null) return;
+    const id = pendingDeleteId;
+    closeDeleteModal();
+
+    if (useDemo) {
+      const idx = entries.findIndex(e => e.id === id);
+      if (idx > -1) {
+        const name = entries[idx].name;
+        entries.splice(idx, 1);
+        showAlert(`🗑️ Record for "${name}" deleted successfully.`);
+        updateStats();
+        loadAllEntries();
+      }
+    } else {
+      try {
+        const res = await fetch(`${API}/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Delete failed');
+        const idx = entries.findIndex(e => e.id === id);
+        if (idx > -1) entries.splice(idx, 1);
+        showAlert(`🗑️ Record deleted successfully.`);
+        updateStats();
+        loadAllEntries();
+      } catch(e) { showAlert(e.message, 'error'); }
+    }
+  }
+
+  // Close modal when clicking outside
+  document.getElementById('deleteModal').addEventListener('click', function(e) {
+    if (e.target === this) closeDeleteModal();
+  });
+
+
+  function clearForm() {
+    ['name','fathersName','address','panCard'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('entryTimeDisplay').value = '';
+  }
+
+  // ── SEED DEMO DATA ───────────────────────────────────────────────
+  function seedDemoData() {
+    const demos = [
+      { name:'Priya Sharma',  fathersName:'Raj Sharma',   address:'12 MG Road, Bengaluru - 560001',
+        panCard:'BKNPS1234D', status:'CHECKED_IN',
+        entryTime: new Date(Date.now()-3600000).toISOString(), exitTime: null },
+      { name:'Arjun Mehta',   fathersName:'Vijay Mehta',  address:'45 Connaught Place, New Delhi - 110001',
+        panCard:'CKMPA5678F', status:'CHECKED_OUT',
+        entryTime: new Date(Date.now()-7200000).toISOString(), exitTime: new Date(Date.now()-1800000).toISOString() },
+      { name:'Sunita Rao',    fathersName:'Krishna Rao',  address:'8 Park Street, Kolkata - 700016',
+        panCard:'DLSRB9012G', status:'CHECKED_IN',
+        entryTime: new Date(Date.now()-1200000).toISOString(), exitTime: null },
+      { name:'Ramesh Gupta',  fathersName:'Mohan Gupta',  address:'22 Civil Lines, Allahabad - 211001',
+        panCard:'FGHRG4321H', status:'CHECKED_OUT',
+        entryTime: new Date(Date.now()-10800000).toISOString(), exitTime: new Date(Date.now()-5400000).toISOString() },
+      { name:'Kavita Singh',  fathersName:'Harpal Singh', address:'5 Sector 17, Chandigarh - 160017',
+        panCard:'HJKKS7865J', status:'CHECKED_IN',
+        entryTime: new Date(Date.now()-600000).toISOString(), exitTime: null },
+      { name:'Deepak Verma',  fathersName:'Ashok Verma',  address:'78 Lajpat Nagar, New Delhi - 110024',
+        panCard:'KLMNV2233L', status:'CHECKED_OUT',
+        entryTime: new Date(Date.now()-14400000).toISOString(), exitTime: new Date(Date.now()-9000000).toISOString() },
+      { name:'Anjali Patel',  fathersName:'Suresh Patel', address:'33 CG Road, Ahmedabad - 380009',
+        panCard:'MNOAP5566N', status:'CHECKED_IN',
+        entryTime: new Date(Date.now()-900000).toISOString(), exitTime: null },
+    ];
+    demos.forEach(d => entries.push({ id: nextId++, ...d }));
+    updateStats();
+  }
+
+  // ── INIT ─────────────────────────────────────────────────────────
+  seedDemoData();
+  if (useDemo) {
+    showAlert('👋 Live Demo — Check In/Out guests, Search, Delete records. Fully interactive!');
+  }
+</script>
+
+</body>
+</html>
